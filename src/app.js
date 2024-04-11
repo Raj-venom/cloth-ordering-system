@@ -27,6 +27,8 @@ import healthcheckRouter from "./routes/healthcheck.routes.js"
 
 //routes declaration
 app.use("/api/v1/healthcheck", healthcheckRouter)
+import userRouter from "./routes/user.routes.js"
+app.use("/api/v1/users", userRouter)
 
 
 
