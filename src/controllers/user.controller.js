@@ -137,8 +137,73 @@ const loginUser = asyncHandler(async (req, res) => {
 
 })
 
+const logoutUser = asyncHandler(async (req, res) => {
+
+    const logout = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $unset: {
+                refreshToken: 1
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    if (!logout) {
+        throw new ApiError(500, "Something went wrong while logouting user")
+    }
+
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User logged Out"))
+
+})
+
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+
+    const { oldPassword, newPassword } = req.body
+
+    if (
+        [oldPassword, newPassword].some((field) => field === "" || field?.trim() == undefined)
+    ) {
+        throw new ApiError(400, "Both Old Password and new password is required")
+
+    }
+
+    if (oldPassword === newPassword) {
+        throw new ApiError(400, "choose new and diffrent password")
+    }
+
+    const user = await User.findById(req.user?._id)
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(401, "invalid old password")
+    }
+
+    user.password = newPassword
+    await user.save({ validateBeforeSave: false })
+
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Password changed successfully"))
+
+
+})
+
+
+
 export {
     registerUser,
     loginUser,
+    logoutUser,
+    changeCurrentPassword,
 
 }
