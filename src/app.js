@@ -20,6 +20,17 @@ app.use(express.static("public"))
 app.use(cookieParser())
 
 
+// Router import 
+import healthcheckRouter from "./routes/healthcheck.routes.js"
+
+
+
+//routes declaration
+app.use("/api/v1/healthcheck", healthcheckRouter)
+
+
+
+
 app.use((err, req, res, next) => {
   if (err instanceof ApiError) {
 
