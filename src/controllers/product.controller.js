@@ -185,11 +185,86 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
 })
 
+const updateStock = asyncHandler(async (req, res) => {
+
+    const { productId } = req.params
+    const { newStock } = req.body
+
+    if (!isValidObjectId(productId)) {
+        throw new ApiError(400, "invalid productId || invlaid object id")
+    }
+
+    const product = await Product.findById(productId)
+
+    if (!product?.owner.equals(req.user?._id)) {
+        throw new ApiError(401, "unauthorize product owner")
+    }
+
+    const updateProduct = await Product.findByIdAndUpdate(
+        productId,
+        {
+            $set: {
+                stock: newStock
+            }
+
+        },
+        { new: true }
+    )
+
+    if (!updateProduct) {
+        throw new ApiError(500, "something went wrong while updating stock")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updateProduct, "Stock updated sucessfully"))
+
+})
+
+const updatePrice = asyncHandler(async (req, res) => {
+
+    const { price } = req.body
+    const { productId } = req.params
+
+
+    if (!isValidObjectId(productId)) {
+        throw new ApiError(400, "invalid productId || invlaid object id")
+    }
+
+    const product = await Product.findById(productId)
+
+    if (!product?.owner.equals(req.user?._id)) {
+        throw new ApiError(401, "unauthorize product owner")
+    }
+
+    const updateProduct = await Product.findByIdAndUpdate(
+        productId,
+        {
+            $set: {
+                price
+            }
+
+        },
+        { new: true }
+    )
+
+    if (!updateProduct) {
+        throw new ApiError(500, "something went wrong while updating price")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updateProduct, "Price updated sucessfully"))
+
+
+})
+
 
 
 export {
     addNewProduct,
     updateProduct,
     deleteProduct,
-
+    updateStock,
+    updatePrice,
 }
