@@ -279,6 +279,50 @@ const getProductById = asyncHandler(async (req, res) => {
 
 })
 
+const getAllProduct = asyncHandler(async (req, res) => {
+
+    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
+
+    const options = {
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10
+    }
+
+    const aggregate = Product.aggregate()
+
+    if (query) {
+        aggregate.match(
+            {
+                $or: [
+                    { name: { $regex: query, $options: 'i' } },
+                    { brand: { $regex: query, $options: 'i' } }
+                ]
+            }
+        )
+    }
+
+    if (sortBy && sortType) {
+        const sortOrder = sortType === 'asc' ? 1 : -1;
+        aggregate.sort({ [sortBy]: sortOrder })
+    }
+
+    if (userId) {
+        aggregate.match(
+            {
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        )
+    }
+
+    const product = await Product.aggregatePaginate(aggregate, options)
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, product, "Product fetched sucessfully"))
+
+
+
+})
 
 const getAllCategory = asyncHandler(async (req, res) => {
 
@@ -336,6 +380,7 @@ export {
     updateStock,
     updatePrice,
     getProductById,
+    getAllProduct,
     getAllCategory,
     getProdutName
 }
