@@ -2,7 +2,8 @@ import { Router } from "express";
 
 import {
     orderItems,
-    deliveredOrCancled
+    deliveredOrCancled,
+    cancelOrder
 
 } from "../controllers/order.controller.js"
 
@@ -13,6 +14,8 @@ const router = Router()
 
 router.route("/").post(verifyJWT, orderItems)
 router.route("/seller/:orderId").patch(verifyJWT, deliveredOrCancled)
+router.route("/user/:orderId").patch(verifyJWT, cancelOrder)
+
 
 
 export default router

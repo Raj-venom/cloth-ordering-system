@@ -125,7 +125,60 @@ const deliveredOrCancled = asyncHandler(async (req, res) => {
 
 })
 
+// user's cancel order
+const cancelOrder = asyncHandler(async (req, res) => {
+
+    // get order id from the frontend
+    // validate order id in database
+    // check satus if its already delivered or cancelled 
+    // update the status to cancelled 
+    // send response
+
+    const { orderId } = req.params;
+
+    if (!isValidObjectId(orderId)) {
+        throw new ApiError(400, "invalid productId || object id");
+    }
+
+    const order = await Order.findById(orderId);
+
+    const currentStatus = order.status;
+
+    if (currentStatus === "DELIVERED" || currentStatus === "CANCELLED") {
+        throw new ApiError(
+            409,
+            `can't change the order status after ${currentStatus}`
+        );
+    }
+
+    const updateStatus = await Order.findByIdAndUpdate(
+        orderId,
+        {
+            $set: {
+                status: "CANCELLED"
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    if (!updateStatus) {
+        throw new ApiError(500, "Something went wrong while cancelling the order")
+    }
+
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, updateStatus, "Order cancled successfully")
+        )
+
+
+})
+
 export {
     orderItems,
-    deliveredOrCancled
+    deliveredOrCancled,
+    cancelOrder
 }
