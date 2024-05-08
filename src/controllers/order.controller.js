@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-import { Ordre } from "../models/order.models.js"
+import { Order } from "../models/order.models.js"
 import { Product } from "../models/product.models.js"
 import { isValidObjectId } from "mongoose"
 
@@ -46,7 +46,7 @@ const orderItems = asyncHandler(async (req, res) => {
 
 
     // create database entry
-    const order = await Ordre.create(
+    const order = await Order.create(
         {
             custumerName: req.user?.fullName,
             custumerId: req.user?._id,
@@ -58,7 +58,7 @@ const orderItems = asyncHandler(async (req, res) => {
         }
     )
 
-    const createdOrder = await Ordre.findById(order?._id)
+    const createdOrder = await Order.findById(order?._id)
 
     if (!createdOrder) {
         throw new ApiError(500, "Something went wrong while taking order")
@@ -92,7 +92,7 @@ const deliveredOrCancled = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Invalid user credentials Seller can only use deliver Or Cancle feature")
     }
 
-    const order = await Ordre.findById(orderId)
+    const order = await Order.findById(orderId)
 
     if (!order) {
         throw new ApiError(404, "Order not found")
@@ -105,7 +105,7 @@ const deliveredOrCancled = asyncHandler(async (req, res) => {
         throw new ApiError(409, `can't change the order status after ${currentStatus}`)
     }
 
-    const updateStaus = await Ordre.findByIdAndUpdate(
+    const updateStaus = await Order.findByIdAndUpdate(
         orderId,
         {
             $set: {
