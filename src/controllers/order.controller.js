@@ -207,10 +207,33 @@ const OrderStatus = asyncHandler(async (req, res) => {
 
 })
 
+// user personal order History
+const userOrderHistory = asyncHandler(async (req, res) => {
+
+    const order = await Order.aggregate([
+        {
+            $match: {
+                custumerId: new mongoose.Types.ObjectId(req.user?._id)
+            }
+        }
+    ])
+
+    if (!order) {
+        throw new ApiError(500, "something went wrong while fetching data")
+    }
+
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, order, "Order fetched sucessfully"))
+
+})
 
 export {
     orderItems,
     deliveredOrCancled,
     cancelOrder,
-    OrderStatus
+    OrderStatus,
+    userOrderHistory
+
 }
