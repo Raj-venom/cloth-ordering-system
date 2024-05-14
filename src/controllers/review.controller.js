@@ -76,10 +76,32 @@ const addProductReview = asyncHandler(async (req, res) => {
 })
 
 
+const getProductReview = asyncHandler(async (req, res) => {
 
+    const { productId } = req.params
+
+    const review = await Review.aggregate([
+
+        {
+            $match: {
+                product: new mongoose.Types.ObjectId(productId)
+            }
+        }
+    ])
+
+    if (!review) {
+        throw new ApiError(500, "something went wrong while fetching review")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, review, "product review fetched successfully"))
+
+})
 
 
 export {
     addProductReview,
+    getProductReview
     
 }
