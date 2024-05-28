@@ -210,10 +210,31 @@ const OrderStatus = asyncHandler(async (req, res) => {
 // user personal order History
 const userOrderHistory = asyncHandler(async (req, res) => {
 
+    let allOrder = false;
+
+    const { status } = req.params
+
+    if (status === "ALL") {
+        allOrder = true
+    }
+
     const order = await Order.aggregate([
         {
             $match: {
                 custumerId: new mongoose.Types.ObjectId(req.user?._id)
+            }
+        },
+        {
+            $match: {
+                status: { $in: allOrder ? ["PENDING", "CANCELLED", "DELIVERED"] : [`${status}`] }
+            }
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "orderItem.productId",
+                foreignField: "_id",
+                as: "product"
             }
         }
     ])
@@ -228,7 +249,6 @@ const userOrderHistory = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, order, "Order fetched sucessfully"))
 
 })
-
 export {
     orderItems,
     deliveredOrCancled,
