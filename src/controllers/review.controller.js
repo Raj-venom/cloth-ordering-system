@@ -86,7 +86,31 @@ const getProductReview = asyncHandler(async (req, res) => {
             $match: {
                 product: new mongoose.Types.ObjectId(productId)
             }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "customer",
+                foreignField: "_id",
+                as: "user",
+                pipeline: [
+                    {
+                        $project: {
+                            password: 0,
+                            refreshToken: 0
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                user: {
+                    $first: "$user"
+                }
+            }
         }
+
     ])
 
     if (!review) {
@@ -100,8 +124,9 @@ const getProductReview = asyncHandler(async (req, res) => {
 })
 
 
+
 export {
     addProductReview,
     getProductReview
-    
+
 }
