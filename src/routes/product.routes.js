@@ -9,23 +9,21 @@ import {
     getProductById,
     getAllProduct,
     getAllCategory,
-    getProdutName
+    getProdutName,
+    getSellerAllProduct
 } from "../controllers/product.controller.js"
 
 import { upload } from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 
-
-
 const router = Router()
 router.route("/search/name").get(getProdutName)
-
-router.use(verifyJWT)
 
 router.route("/")
     .get(getAllProduct)
     .post(
+        verifyJWT,
         upload.fields([
             {
                 name: "productImage",
@@ -41,13 +39,15 @@ router.route("/")
 
 router.route("/:productId")
     .get(getProductById)
-    .patch(updateProduct)
-    .delete(deleteProduct)
+    .patch(verifyJWT, updateProduct)
+    .delete(verifyJWT, deleteProduct)
+
+router.use(verifyJWT)
 
 router.route("/update-stock/:productId").patch(updateStock)
 router.route("/update-price/:productId").patch(updatePrice)
 router.route("/category/unique").get(getAllCategory)
-
+router.route("/seller/allproduct").get(getSellerAllProduct)
 
 
 export default router

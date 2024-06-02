@@ -373,6 +373,56 @@ const getProdutName = asyncHandler(async (req, res) => {
 
 })
 
+const getSellerAllProduct = asyncHandler(async (req, res) => {
+
+    const { page = 1, limit = 10, query, sortBy, sortType } = req.query
+
+    const options = {
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || 10
+    }
+
+    const aggregate = Product.aggregate()
+
+    aggregate.match(
+        {
+            owner: new mongoose.Types.ObjectId(req.user?._id)
+        }
+    )
+
+    // search if there user wants personalize product
+    if (query) {
+        aggregate.match(
+            {
+                $or: [
+                    { name: { $regex: query, $options: 'i' } },
+                    { brand: { $regex: query, $options: 'i' } }
+                ]
+            }
+        )
+    }
+
+    // sort the product according to user need
+    if (sortBy && sortType) {
+        const sortOrder = sortType === 'asc' ? 1 : -1;
+        aggregate.sort({ [sortBy]: sortOrder })
+    }
+
+
+    const product = await Product.aggregatePaginate(aggregate, options)
+
+
+    if (!product) {
+        throw new ApiError(500, "something went wrong while fetching product")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, product, "product fetched sucessfully"))
+
+
+})
+
 export {
     addNewProduct,
     updateProduct,
@@ -382,5 +432,6 @@ export {
     getProductById,
     getAllProduct,
     getAllCategory,
-    getProdutName
+    getProdutName,
+    getSellerAllProduct
 }
