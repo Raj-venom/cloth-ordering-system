@@ -67,7 +67,7 @@ userSchema.methods.generateAccessToken = function () {
     return Jwt.sign(
         {
             // we have access of data base using "this"
-            _id: this.id,
+            _id: this.id,  //  _id: this._id,
             email: this.email,
             address: this.address,
             fullName: this.fullName,
