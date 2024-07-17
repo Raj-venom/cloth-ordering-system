@@ -1,137 +1,141 @@
-import { asyncHandler } from "../utils/asyncHandler.js"
-import { ApiError } from "../utils/ApiError.js"
-import { ApiResponse } from "../utils/ApiResponse.js"
-import { Order } from "../models/order.models.js"
-import { Product } from "../models/product.models.js"
-import { isValidObjectId } from "mongoose"
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { Order } from "../models/order.models.js";
+import { Product } from "../models/product.models.js";
+import mongoose, { isValidObjectId } from "mongoose";
 
 const orderItems = asyncHandler(async (req, res) => {
-
     // get product details from frontEnd
-    const { phone, shippingAddress, paymentMethod, orderItem } = req.body
-
+    const { phone, shippingAddress, paymentMethod, orderItem } = req.body;
 
     if (paymentMethod !== "COD" && paymentMethod !== "ONLINE") {
-        throw new ApiError(400, "Valid Payment Method is required")
+        throw new ApiError(400, "Valid Payment Method is required");
     }
 
-    // validate required field 
+    // validate required field
     if (
-        [shippingAddress, phone].some((field) => field?.trim() === "" || field?.trim() === undefined)
+        [shippingAddress, phone].some(
+            (field) => field?.trim() === "" || field?.trim() === undefined
+        )
     ) {
-        throw new ApiError(400, "phone and shippingAddress are required")
+        throw new ApiError(400, "phone and shippingAddress are required");
     }
 
     const orderItemObj = JSON.parse(orderItem);
-    const objLength = orderItemObj.length
+    const objLength = orderItemObj.length;
 
     if (objLength === 0) {
-        throw new ApiError(400, "Order Item required")
+        throw new ApiError(400, "Order Item required");
     }
 
     let orderPrice = 0;
     for (let i = 0; i < objLength; i++) {
+        const productId = orderItemObj[i].productId;
+        const quantity = orderItemObj[i].quantity;
 
-        const productId = orderItemObj[i].productId
-        const quantity = orderItemObj[i].quantity
-
-        const product = await Product.findById(productId)
-        const price = (product.price) * quantity
+        const product = await Product.findById(productId);
+        const price = product.price * quantity;
 
         orderPrice += price;
-
     }
 
-    console.log(orderPrice)
-
+    console.log(orderPrice);
 
     // create database entry
-    const order = await Order.create(
-        {
-            custumerName: req.user?.fullName,
-            custumerId: req.user?._id,
-            orderPrice,
-            phone,
-            orderItem: orderItemObj,
-            shippingAddress,
-            paymentMethod
-        }
-    )
+    const order = await Order.create({
+        custumerName: req.user?.fullName,
+        custumerId: req.user?._id,
+        orderPrice,
+        phone,
+        orderItem: orderItemObj,
+        shippingAddress,
+        paymentMethod,
+    });
 
-    const createdOrder = await Order.findById(order?._id)
+    const createdOrder = await Order.findById(order?._id);
 
     if (!createdOrder) {
-        throw new ApiError(500, "Something went wrong while taking order")
+        throw new ApiError(500, "Something went wrong while taking order");
     }
 
-    // send response 
+    // send response
     return res
         .status(201)
-        .json(new ApiResponse(201, createdOrder, "Order created sucessfully"))
+        .json(new ApiResponse(201, createdOrder, "Order created sucessfully"));
+});
 
-})
-
-// Status can only be updated by sellers
+// Status can only be updated by admin
 const deliveredOrCancled = asyncHandler(async (req, res) => {
-
-    const { orderId } = req.params
-    const { status } = req.body
+    const { orderId } = req.params;
+    const { status } = req.body;
 
     if (!status) {
-        throw new ApiError(400, "delivery status required")
+        throw new ApiError(400, "delivery status required");
     }
 
     if (!isValidObjectId(orderId)) {
-        throw new ApiError(400, "invalid productId || object id")
+        throw new ApiError(400, "invalid productId || object id");
     }
 
-    const emailRegex = /^seller\.([a-zA-Z]+[a-zA-Z0-9]*)@samsara\.com$/;
+    const emailRegex = /admin@samsara.com/;
     const isValidEmail = emailRegex.test(req.user?.email);
 
     if (!isValidEmail) {
-        throw new ApiError(401, "Invalid user credentials Seller can only use deliver Or Cancle feature")
+        throw new ApiError(
+            401,
+            "Invalid user credentials Admin can only use deliver Or Cancle feature"
+        );
     }
 
-    const order = await Order.findById(orderId)
+    const order = await Order.findById(orderId);
 
     if (!order) {
-        throw new ApiError(404, "Order not found")
+        throw new ApiError(404, "Order not found");
     }
 
-    const currentStatus = order.status
+    const currentStatus = order.status;
 
     if (currentStatus === "DELIVERED" || currentStatus === "CANCELLED") {
-
-        throw new ApiError(409, `can't change the order status after ${currentStatus}`)
+        throw new ApiError(
+            409,
+            `can't change the order status after ${currentStatus}`
+        );
     }
 
     const updateStaus = await Order.findByIdAndUpdate(
         orderId,
         {
             $set: {
-                status
-            }
+                status,
+            },
+        },
+        {
+            new: true,
         }
-    )
+    );
 
     if (!updateStaus) {
-        throw new ApiError(500, "someting went wrong while updating the order status")
+        throw new ApiError(
+            500,
+            "someting went wrong while updating the order status"
+        );
     }
 
     return res
         .status(200)
-        .json(new ApiResponse(200, updateStaus, "Order status updated sucessfully"))
+        .json(
+            new ApiResponse(200, updateStaus, "Order status updated sucessfully")
+        );
+});
 
+// CANCELLE order
+const cancellOrder = asyncHandler(async (req, res) => {
 
-})
-
-// user's cancel order
-const cancelOrder = asyncHandler(async (req, res) => {
-
-    // get order id from the frontend
+    //  get order id from the frontend
     // validate order id in database
-    // check satus if its already delivered or cancelled 
-    // update the status to cancelled 
+    // check satus if its already delivered or cancled 
+    // update the status to clancled 
     // send response
 
     const { orderId } = req.params;
@@ -249,11 +253,68 @@ const userOrderHistory = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, order, "Order fetched sucessfully"))
 
 })
+
+const sellerOrderHistory = asyncHandler(async (req, res) => {
+    const { status } = req.params;
+    const allowedStatuses = ['PENDING', 'CANCELLED', 'DELIVERED'];
+    const statusFilter = status === 'ALL' ? { $in: allowedStatuses } : status;
+
+    const orders = await Order.aggregate([
+        {
+            $match: {
+                'orderItem.productId': { $exists: true },
+                status: statusFilter,
+            },
+        },
+        {
+            $unwind: '$orderItem',
+        },
+        {
+            $lookup: {
+                from: 'products',
+                localField: 'orderItem.productId',
+                foreignField: '_id',
+                as: 'productDetails',
+            },
+        },
+        {
+            $unwind: '$productDetails',
+        },
+        {
+            $match: {
+                'productDetails.owner': new mongoose.Types.ObjectId(req.user?._id),
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                custumerName: 1,
+                orderPrice: 1,
+                phone: 1,
+                shippingAddress: 1,
+                status: 1,
+                paymentMethod: 1,
+                'productDetails.name': 1,
+                'productDetails.price': 1,
+                'orderItem.quantity': 1,
+            },
+        },
+    ]);
+
+    if (!orders || orders.length === 0) {
+        throw new ApiError(404, 'No orders found');
+    }
+
+    return res.status(200).json(new ApiResponse(200, orders, 'Orders retrieved successfully'));
+});
+
+
+
 export {
     orderItems,
     deliveredOrCancled,
-    cancelOrder,
+    cancellOrder,
     OrderStatus,
-    userOrderHistory
-
-}
+    userOrderHistory,
+    sellerOrderHistory
+};
