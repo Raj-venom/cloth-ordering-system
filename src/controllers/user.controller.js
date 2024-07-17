@@ -4,7 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.models.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import jwt from "jsonwebtoken"
-
+import { userLog } from "../log/userLog.js"
 
 const options = {
     httpOnly: true,
@@ -85,9 +85,9 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
     // req body -> data
     // validate username or email
-    //find the user
-    //password check
-    //access and referesh token
+    // find the user
+    // password check
+    // access and referesh token
     //send cookie
 
     const { email, password } = req.body;
@@ -118,6 +118,10 @@ const loginUser = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user._id)
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    // Storing user log
+    userLog(req, loggedInUser)
+    
 
     return res
         .status(200)
@@ -212,8 +216,10 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
 
+    // get users details from frontend
     const { fullName, address, phone } = req.body
 
+    // update user details
     const user = await User.findByIdAndUpdate(
 
         req.user?._id,
@@ -231,6 +237,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         throw new ApiError(500, "something went wrong while updating details")
     }
 
+    // send updated user response
     return res
         .status(200)
         .json(new ApiResponse(
@@ -291,6 +298,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 
     try {
+
         const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
 
         const user = await User.findById(decodedToken?._id)
@@ -299,11 +307,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Invalid refresh token")
         }
 
-
         if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "Refresh token expired or used")
         }
-
 
         const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefereshTokens(user?._id)
 
